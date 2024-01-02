@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <title>Schedule Manager</title>
+  <style>
+    div.container
+    {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    div.flexEnd
+    {
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+    }
+    label, .float
+    {
+      float: left;
+      margin-right: 10px;
+    }
+    #saveButtonLabel
+    {
+      font-size: 12px;
+    }
+    select
+    {
+      width: 100px;
+      height: 25px;
+    }
+    #decisionButton
+    {
+      margin-top: 10px;
+    }
+    #saveButton
+    {
+      border-color: lightblue;
+      padding: 8px 16px;
+    }
+    #main
+    {
+      display: none;
+    }
+    table
+    {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td
+    {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+      width: 120px;
+    }
+    td
+    {
+      height: 80px;
+      vertical-align: top;
+    }
+    th
+    {
+      background-color: #f2f2f2;
+    }
+    th.sat
+    {
+      background-color: #e6f7ff;
+    }
+    th.sun
+    {
+      background-color: #ffe6e6;
+    }
+  </style>
+
+  <body>
+    <div class="container">
+      <!-- ユーザ選択欄 -->
+      <h3 id="welcomeTitle">あんた誰ですぅ？</h3>
+      <div>
+        <label for="userOption">ご芳名：</label>
+        <select id="userOption">
+          <?
+            for(var i=0; i<scheduleTable[0].length; i++)
+            {
+              output.append('<option value="option' + i + '">' + scheduleTable[0][i] + '</option>');
+            }
+          ?>
+        </select>
+      </div>
+      <button id="decisionButton" onclick="handleDecision()">決定</button>
+
+      <!-- スケジュール -->
+      <div id="main">
+        <h2><?=year?>年<?=Number(month)+1?>月</h2>
+        <div class="float">
+          <label for="targetSelect">一括設定:</label>
+          <select class="float" id="targetSelect">
+            <option>すべて</option>
+            <option>日曜日</option>
+            <option>月曜日</option>
+            <option>火曜日</option>
+            <option>水曜日</option>
+            <option>木曜日</option>
+            <option>金曜日</option>
+            <option>土曜日</option>
+          </select>
+          <label for="manageSelect">を</label>
+          <select class="float" id="manageSelect">
+            <option>---</option>
+            <option>〇</option>
+            <option>△</option>
+            <option>✖</option>
+          </select>
+          <label for="settingButton">に設定する</label>
+          <button id="settingButton" onclick="batchSetting()">適用</button>
+        </div>
+        <div class="flexEnd">
+          <label id="saveButtonLabel" for="saveButton"></label>
+          <button id="saveButton" onclick="saveSetting()">設定を保存</button>
+        </div>
+        <table>
+          <thead><tr><th class="sun">日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th class="sat">土</th></tr></thead>
+          <tbody id="calendar-body">
+              <!-- カレンダーの日付がここに挿入されます -->
+          </tbody>
+        </table>
+      </div>
+
+      <script>
+        const selectList = ["---", "〇", "△", "✖"];
+
+        function handleDecision()
+        {
+          document.getElementById("welcomeTitle").innerHTML = "ようこそ！";
+          document.getElementById("main").style.display = "block";
+
+          var calendarBody = document.getElementById("calendar-body");
+          while (calendarBody.firstChild)
+          {
+            calendarBody.removeChild(calendarBody.firstChild);
+          }
+
+          var month = <?=month?>;
+          var year = <?=year?>;
+          var date = new Date(year, month, 1);
+          let firstDay = date.getDay();
+          let bFirstWeek = true;
+          let userElement = document.getElementById("userOption");
+          let userName = userElement.options[userElement.selectedIndex].text;
+          let scheduleTable = JSON.parse('<?!= JSON.stringify(scheduleTable) ?>');
+          let userIndex = scheduleTable[0].indexOf(userName);
+
+          while (date.getMonth() === 0)
+          {
+            var row = document.createElement("tr");
+
+            for (var i = 0; i < 7; i++)
+            {
+              var cell = document.createElement("td");
+              if((!bFirstWeek || i>=firstDay) && date.getMonth()==month)
+              {
+                // date
+                cell.textContent = date.getDate();
+
+                // selector
+                var mySchedule = document.createElement("select");
+                var scheduleIndex = 0;
+                for(var j=0; j<selectList.length; j++)
+                {
+                  var option = document.createElement("option");
+                  option.textContent = selectList[j];
+                  mySchedule.appendChild(option);
+                  
+                  if(selectList[j] == scheduleTable[date.getDate()][userIndex])
+                  {
+                    scheduleIndex = j;
+                  }
+                }
+                mySchedule.selectedIndex = scheduleIndex;
+                mySchedule.id = "scheduleSelect";
+                
+                var par = document.createElement("p");
+                par.innerHTML = analyzeSchedule(scheduleTable[date.getDate()]);
+
+                cell.appendChild(document.createElement("br"));
+                cell.appendChild(mySchedule);
+                cell.appendChild(par);
+                date.setDate(date.getDate() + 1);
+              }
+
+              row.appendChild(cell);
+            }
+            bFirstWeek = false;
+            calendarBody.appendChild(row);
+          }
+        }
+        
+        function analyzeSchedule(table)
+        {
+          var count = [0, 0, 0];
+          
+          for(var k=0; k<table.length; k++)
+          {
+            for(var l=0; l<3; l++)
+            {
+              if(selectList[l+1] == table[k])
+              {
+                count[l]++;
+                break;
+              }
+            }
+          }
+
+          var result = [];
+
+          for(var k=0; k<3; k++)
+          {
+            result.push(selectList[k+1] + " " + count[k]);
+          }
+
+          return result.join(", ");
+        }
+
+        function batchSetting()
+        {
+          var targetElem = document.getElementById("targetSelect");
+          var manageElem = document.getElementById("manageSelect");
+          var calendarBody = document.getElementById("calendar-body");
+
+          for(var i=0; i<calendarBody.rows.length; i++)
+          {
+            for(var j=0; j<calendarBody.rows[i].cells.length; j++)
+            {
+              if(targetElem.selectedIndex == 0 || targetElem.selectedIndex == j+1)
+              {
+                var scheduleElem = calendarBody.rows[i].cells[j].querySelector("#scheduleSelect");
+                if(scheduleElem)
+                {
+                  scheduleElem.selectedIndex = manageElem.selectedIndex;
+                }
+              }
+            }
+          }
+        }
+
+        function saveSetting()
+        {
+          document.getElementById("saveButtonLabel").textContent = "保存中かも...";
+          
+          var calendarBody = document.getElementById("calendar-body");
+          var scheduleList = [];
+          var userElement = document.getElementById("userOption");
+          var userName = userElement.options[userElement.selectedIndex].text;
+          
+          for(var i=0; i<calendarBody.rows.length; i++)
+          {
+            for(var j=0; j<calendarBody.rows[i].cells.length; j++)
+            {
+              var scheduleElem = calendarBody.rows[i].cells[j].querySelector("#scheduleSelect");
+              if(scheduleElem)
+              {
+                scheduleList.push(selectList[scheduleElem.selectedIndex]);
+              }
+            }
+          }
+
+          google.script.run.withSuccessHandler(onSuccess).saveSetting(scheduleList, userName);
+        }
+
+        function onSuccess(response)
+        {
+          var curDate = new Date();
+          var curTime = curDate.getHours() + ":" + adjustTimeText(curDate.getMinutes()) + ":" + adjustTimeText(curDate.getSeconds());
+          document.getElementById("saveButtonLabel").textContent = curTime + " たぶん保存されました。";
+        }
+
+        function adjustTimeText(time)
+        {
+          if(Number(time) < 10)
+          {
+            return "0" + time;
+          }
+          return time
+        }
+      </script>
+    </div>
+  </body>
+</html>

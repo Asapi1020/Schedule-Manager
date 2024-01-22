@@ -28,8 +28,7 @@ function doGet(e)
   template.year = dateData[0];
   template.month = dateData[1];
 
-  const htmlOutput = template.evaluate();
-  return htmlOutput;
+  return template.evaluate();
 }
 
 function saveSetting(scheduleList, userName)

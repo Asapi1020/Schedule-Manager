@@ -156,7 +156,7 @@
           let scheduleTable = JSON.parse('<?!= JSON.stringify(scheduleTable) ?>');
           let userIndex = scheduleTable[0].indexOf(userName);
 
-          while (date.getMonth() === 0)
+          while (date.getMonth() == month)
           {
             var row = document.createElement("tr");
 

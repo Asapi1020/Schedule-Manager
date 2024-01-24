@@ -1,5 +1,6 @@
 const spreadSheet = SpreadsheetApp.openById("1E8Lfa-pay-qEn9QX5p9t9-ZMXhy1sek6dgZjYtkISJA");
 const sheetName = "Classic Zeds";
+const urlWebHook = spreadSheet.getRange("Settings!A1").getValue();
 
 function doGet(e)
 {
@@ -42,4 +43,13 @@ function saveSetting(scheduleList, userName)
   {
     sheet.getRange(i+2, userIndex+2).setValue(scheduleList[i]);
   }
+
+  notifySave(userName);
+}
+
+function notifySave(name)
+{
+  let payLoad = {"content": (name + "がスケジュールを更新しました！")};
+  let options = {"method": "post", "payload": payLoad};
+  UrlFetchApp.fetch(urlWebHook, options);
 }
